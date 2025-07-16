@@ -1,12 +1,13 @@
 package com.ecommerce.service;
 
+import com.ecommerce.model.ItemCart;
 import com.ecommerce.model.Order;
 import com.ecommerce.model.Product;
 import com.ecommerce.observer.IOrderObserver;
 import java.util.List;
 
 public class InventoryService implements IOrderObserver {
-    public boolean checkStock(List<Product> items) {
+    public boolean checkStock(List<ItemCart> items) {
         System.out.println("Checking stock... Stock OK.");
         return true;
     }

@@ -1,11 +1,14 @@
+// In the file src/main/java/com/ecommerce/controller/OrderController.java
+
 package com.ecommerce.controller;
 
-import com.ecommerce.model.Customer;
-import com.ecommerce.model.Order;
-import com.ecommerce.model.ShoppingCart;
+import com.ecommerce.model.*;
 import com.ecommerce.observer.EmailNotifier;
+import com.ecommerce.observer.InAppNotifier;
+import com.ecommerce.observer.SMSNotifier;
 import com.ecommerce.service.InventoryService;
 import com.ecommerce.service.PaymentService;
+import com.ecommerce.strategy.IDiscount;
 import com.ecommerce.strategy.IPaymentStrategy;
 
 public class OrderController {
@@ -17,19 +20,29 @@ public class OrderController {
         this.paymentService = paymentService;
     }
 
-    public Order placeOrder(Customer customer, IPaymentStrategy paymentStrategy) {
-        System.out.println("\n== Starting order process for " + customer.getName() + " ==");
+    // Method signature now includes IDiscount
+    public Order placeOrder(Customer customer, IPaymentStrategy paymentStrategy, IDiscount discountStrategy) {
+        System.out.println("\n== Order process begins for " + customer.getName() + " ==");
         ShoppingCart cart = customer.getCart();
 
         if (inventoryService.checkStock(cart.getItems())) {
-            double total = cart.getTotalPrice();
+            double totalAmount = cart.getTotalPrice();
+            System.out.println("Total before discount: " + totalAmount + "€");
 
-            Order order = new Order("ORD-" + System.currentTimeMillis(), total);
+            // Applying the discount strategy
+            double finalAmount = discountStrategy.apply(totalAmount);
+            System.out.println("Total after discount: " + finalAmount + "€");
 
+            Order order = new Order("ORD-" + System.currentTimeMillis(), finalAmount);
+
+            // Attach all notifiers for demonstration purposes
             order.attach(new EmailNotifier());
-            order.attach(inventoryService);
+            order.attach(new SMSNotifier());
+            order.attach(new InAppNotifier());
+            order.attach(inventoryService); // Inventory service also acts as an observer
 
-            paymentService.processPayment(paymentStrategy, total);
+            // Process payment on the final amount
+            paymentService.processPayment(paymentStrategy, finalAmount);
             order.setStatus("PAID");
 
             order.setStatus("PROCESSING");
@@ -40,6 +53,5 @@ public class OrderController {
             System.out.println("Order failed: insufficient stock.");
             return null;
         }
-
     }
 }
